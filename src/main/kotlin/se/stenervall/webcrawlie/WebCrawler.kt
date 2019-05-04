@@ -7,21 +7,21 @@ import java.util.regex.Pattern
 class WebCrawler {
     val hrefRegex = Pattern.compile("href=\"([^\"]+)\"")!!
 
-    fun crawl(url: String): Set<String> {
+    fun crawl(url: String): Map<String, Set<String>> {
         val queue = ArrayDeque<String>()
-        val visited = mutableSetOf<String>()
+        val visited = mutableMapOf<String, Set<String>>()
         queue.add("/")
 
         while (queue.isNotEmpty()) {
             val nextUrl = queue.pop()
-            if(nextUrl.startsWith("/")){
+            if (nextUrl.startsWith("/")) {
                 val newUrls = "${url}${nextUrl}".httpGetAndFindLinks()
-                visited.add(nextUrl)
+                visited.put(nextUrl, newUrls)
                 queue.addAll(newUrls)
             }
         }
 
-        return visited.toSet()
+        return visited.toMap()
     }
 
     private fun String.httpGetAndFindLinks(): Set<String> {

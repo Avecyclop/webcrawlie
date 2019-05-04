@@ -44,5 +44,8 @@ class WebCrawlerTest {
         assertTrue(result.contains("/news1.html"))
         assertTrue(result.contains("/news2.html"))
         assertTrue(result.contains("/news3.html"))
+
+        assertTrue(result["/"]!!.contains("/about.html"))
+        assertTrue(result["/"]!!.contains("/news.html"))
     }
 }
