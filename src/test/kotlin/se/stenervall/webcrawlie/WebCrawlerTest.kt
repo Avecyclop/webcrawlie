@@ -66,7 +66,7 @@ class WebCrawlerTest {
         assertEquals("""
             / -> [/news.html, /about.html]
             //localhost:58080/news2.html -> []
-            /about.html -> []
+            /about.html -> [/]
             /news.html -> [/news1.html, //localhost:58080/news2.html, http://localhost:58080/news3.html]
             /news1.html -> []
             http://localhost:58080/news3.html -> []

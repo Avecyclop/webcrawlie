@@ -50,7 +50,8 @@ class WebCrawler {
     ) {
         val newUrls = this.httpGetAndFindLinks()
         visited[nextUrl] = newUrls
-        queue.addAll(newUrls)
+        val notAlreadyVisitedUrls = newUrls.filter { it !in visited }
+        queue.addAll(notAlreadyVisitedUrls)
     }
 
     private fun String.httpGetAndFindLinks(): Set<String> {
