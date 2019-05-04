@@ -26,17 +26,18 @@ class WebCrawler {
     fun crawl(url: String): Map<String, Set<String>> {
         val queue = ArrayDeque<String>()
         val visited = mutableMapOf<String, Set<String>>()
+        val unvisitable = mutableSetOf<String>()
         queue.add("/")
 
         while (queue.isNotEmpty()) {
             val nextUrl = queue.pop()
             when {
                 nextUrl.startsWith("//") ->
-                    "${url.protocol()}${nextUrl}".httpGetAndFindLinksAndQueueNewLinks(nextUrl, visited, queue)
+                    "${url.protocol()}${nextUrl}".httpGetAndFindLinksAndQueueNewLinks(nextUrl, visited, unvisitable, queue)
                 nextUrl.startsWith("/") ->
-                    "${url}${nextUrl}".httpGetAndFindLinksAndQueueNewLinks(nextUrl, visited, queue)
+                    "${url}${nextUrl}".httpGetAndFindLinksAndQueueNewLinks(nextUrl, visited, unvisitable, queue)
                 nextUrl.startsWith(url) ->
-                    nextUrl.httpGetAndFindLinksAndQueueNewLinks(nextUrl, visited, queue)
+                    nextUrl.httpGetAndFindLinksAndQueueNewLinks(nextUrl, visited, unvisitable, queue)
             }
         }
 
@@ -46,23 +47,30 @@ class WebCrawler {
     private fun String.httpGetAndFindLinksAndQueueNewLinks(
         nextUrl: String,
         visited: MutableMap<String, Set<String>>,
+        unvisitable: MutableSet<String>,
         queue: ArrayDeque<String>
     ) {
         val newUrls = this.httpGetAndFindLinks()
-        visited[nextUrl] = newUrls
-        val notAlreadyVisitedUrls = newUrls.filter { it !in visited }
-        queue.addAll(notAlreadyVisitedUrls)
+        if (newUrls != null) {
+            visited[nextUrl] = newUrls
+            val notAlreadyVisitedUrls = newUrls
+                .filterNot { it in visited }
+                .filterNot { it in unvisitable }
+            queue.addAll(notAlreadyVisitedUrls)
+        } else {
+            unvisitable.add(this)
+        }
     }
 
-    private fun String.httpGetAndFindLinks(): Set<String> {
-        val (_, _, result) = this.httpGet().responseString()
+    private fun String.httpGetAndFindLinks(): Set<String>? {
+        val (_, response, result) = this.httpGet().responseString()
         result.fold(
             success = { html ->
                 return html.findHrefs()
             },
             failure = {
-                System.err.println("Failed to get ${this}, continuing...")
-                return emptySet()
+                System.err.println("Failed to get ${this} (${response.statusCode}), continuing...")
+                return null
             }
         )
     }

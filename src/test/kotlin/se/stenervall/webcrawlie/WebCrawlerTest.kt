@@ -2,8 +2,10 @@ package se.stenervall.webcrawlie
 
 import com.xebialabs.restito.builder.stub.StubHttp.whenHttp
 import com.xebialabs.restito.semantics.Action.resourceContent
+import com.xebialabs.restito.semantics.Action.status
 import com.xebialabs.restito.semantics.Condition.get
 import com.xebialabs.restito.server.StubServer
+import org.glassfish.grizzly.http.util.HttpStatus
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -56,6 +58,16 @@ class WebCrawlerTest {
 
         assertTrue(result.contains("/news.html"))
         assertTrue(result["/news.html"]!!.contains("${url}/news3.html"))
+    }
+
+    @Test
+    fun unvisitableLinks() {
+        whenHttp(site).match(get("/news1.html"))
+            .then(status(HttpStatus.FORBIDDEN_403))
+
+        val result = target.crawl(url)
+
+        assertEquals(result.toString(), 5, result.size)
     }
 
     @Test
