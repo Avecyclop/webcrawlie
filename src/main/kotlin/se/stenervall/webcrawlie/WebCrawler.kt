@@ -14,10 +14,17 @@ class WebCrawler {
 
         while (queue.isNotEmpty()) {
             val nextUrl = queue.pop()
-            if (nextUrl.startsWith("/")) {
-                val newUrls = "${url}${nextUrl}".httpGetAndFindLinks()
-                visited.put(nextUrl, newUrls)
-                queue.addAll(newUrls)
+            when {
+                nextUrl.startsWith("/") -> {
+                    val newUrls = "${url}${nextUrl}".httpGetAndFindLinks()
+                    visited[nextUrl] = newUrls
+                    queue.addAll(newUrls)
+                }
+                nextUrl.startsWith(url) -> {
+                    val newUrls = nextUrl.httpGetAndFindLinks()
+                    visited[nextUrl] = newUrls
+                    queue.addAll(newUrls)
+                }
             }
         }
 

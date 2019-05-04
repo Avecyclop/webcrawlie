@@ -18,7 +18,7 @@ class WebCrawlerTest {
 
     @Before
     fun setUp() {
-        site = StubServer().run()
+        site = StubServer(58080).run()
         url = "http://localhost:${site.port}"
         whenHttp(site).match(get("/")).then(resourceContent("index.html"))
         whenHttp(site).match(get("/about.html")).then(resourceContent("about.html"))
@@ -43,9 +43,17 @@ class WebCrawlerTest {
         assertTrue(result.contains("/news.html"))
         assertTrue(result.contains("/news1.html"))
         assertTrue(result.contains("/news2.html"))
-        assertTrue(result.contains("/news3.html"))
+        assertTrue(result.contains("${url}/news3.html"))
 
         assertTrue(result["/"]!!.contains("/about.html"))
         assertTrue(result["/"]!!.contains("/news.html"))
+    }
+
+    @Test
+    fun followAbsoluteLinksOnSameDomain() {
+        val result = target.crawl(url)
+
+        assertTrue(result.contains("/news.html"))
+        assertTrue(result["/news.html"]!!.contains("${url}/news3.html"))
     }
 }
