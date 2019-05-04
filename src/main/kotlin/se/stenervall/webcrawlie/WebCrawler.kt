@@ -1,11 +1,27 @@
 package se.stenervall.webcrawlie
 
 import com.github.kittinunf.fuel.httpGet
+import java.io.File
 import java.util.*
 import java.util.regex.Pattern
 
 class WebCrawler {
-    val hrefRegex = Pattern.compile("href=\"([^\"]+)\"")!!
+    companion object {
+        @JvmStatic
+        fun main(args: Array<String>) {
+            if (args.size != 1) {
+                System.err.println("Expected single argument: <url>")
+                System.exit(1)
+            }
+            val crawl = WebCrawler().crawl(args[0])
+            val textMap = crawl.toSortedMap()
+                .map { "${it.key} -> ${it.value}" }
+                .joinToString("\n") { it }
+            File("sitemap.txt").writeText(textMap)
+        }
+    }
+
+    private val hrefRegex = Pattern.compile("href=\"([^\"]+)\"")!!
 
     fun crawl(url: String): Map<String, Set<String>> {
         val queue = ArrayDeque<String>()

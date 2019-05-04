@@ -9,6 +9,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import java.io.File
 
 class WebCrawlerTest {
     private lateinit var site: StubServer
@@ -55,5 +56,20 @@ class WebCrawlerTest {
 
         assertTrue(result.contains("/news.html"))
         assertTrue(result["/news.html"]!!.contains("${url}/news3.html"))
+    }
+
+    @Test
+    fun commandLine() {
+        WebCrawler.main(arrayOf(url))
+        val fileContent = File("sitemap.txt").readText()
+
+        assertEquals("""
+            / -> [/news.html, /about.html]
+            /about.html -> []
+            /news.html -> [/news1.html, /news2.html, http://localhost:58080/news3.html]
+            /news1.html -> []
+            /news2.html -> []
+            http://localhost:58080/news3.html -> []
+        """.trimIndent(), fileContent)
     }
 }
