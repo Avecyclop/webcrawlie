@@ -31,20 +31,26 @@ class WebCrawler {
         while (queue.isNotEmpty()) {
             val nextUrl = queue.pop()
             when {
-                nextUrl.startsWith("/") -> {
-                    val newUrls = "${url}${nextUrl}".httpGetAndFindLinks()
-                    visited[nextUrl] = newUrls
-                    queue.addAll(newUrls)
-                }
-                nextUrl.startsWith(url) -> {
-                    val newUrls = nextUrl.httpGetAndFindLinks()
-                    visited[nextUrl] = newUrls
-                    queue.addAll(newUrls)
-                }
+                nextUrl.startsWith("//") ->
+                    "${url.protocol()}${nextUrl}".httpGetAndFindLinksAndQueueNewLinks(nextUrl, visited, queue)
+                nextUrl.startsWith("/") ->
+                    "${url}${nextUrl}".httpGetAndFindLinksAndQueueNewLinks(nextUrl, visited, queue)
+                nextUrl.startsWith(url) ->
+                    nextUrl.httpGetAndFindLinksAndQueueNewLinks(nextUrl, visited, queue)
             }
         }
 
         return visited.toMap()
+    }
+
+    private fun String.httpGetAndFindLinksAndQueueNewLinks(
+        nextUrl: String,
+        visited: MutableMap<String, Set<String>>,
+        queue: ArrayDeque<String>
+    ) {
+        val newUrls = this.httpGetAndFindLinks()
+        visited[nextUrl] = newUrls
+        queue.addAll(newUrls)
     }
 
     private fun String.httpGetAndFindLinks(): Set<String> {
@@ -68,4 +74,6 @@ class WebCrawler {
         }
         return hrefs.toSet()
     }
+
+    private fun String.protocol() = this.split("//").first()
 }

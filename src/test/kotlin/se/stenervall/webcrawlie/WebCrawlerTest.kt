@@ -43,7 +43,7 @@ class WebCrawlerTest {
         assertTrue(result.contains("/about.html"))
         assertTrue(result.contains("/news.html"))
         assertTrue(result.contains("/news1.html"))
-        assertTrue(result.contains("/news2.html"))
+        assertTrue(result.contains("//localhost:58080/news2.html"))
         assertTrue(result.contains("${url}/news3.html"))
 
         assertTrue(result["/"]!!.contains("/about.html"))
@@ -65,10 +65,10 @@ class WebCrawlerTest {
 
         assertEquals("""
             / -> [/news.html, /about.html]
+            //localhost:58080/news2.html -> []
             /about.html -> []
-            /news.html -> [/news1.html, /news2.html, http://localhost:58080/news3.html]
+            /news.html -> [/news1.html, //localhost:58080/news2.html, http://localhost:58080/news3.html]
             /news1.html -> []
-            /news2.html -> []
             http://localhost:58080/news3.html -> []
         """.trimIndent(), fileContent)
     }
