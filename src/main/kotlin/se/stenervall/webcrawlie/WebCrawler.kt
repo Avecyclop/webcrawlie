@@ -1,10 +1,5 @@
 package se.stenervall.webcrawlie
 
-import com.github.kittinunf.fuel.httpGet
-import java.io.File
-import java.util.*
-import java.util.regex.Pattern
-
 class WebCrawler {
     companion object {
         @JvmStatic
@@ -13,76 +8,41 @@ class WebCrawler {
                 System.err.println("Expected single argument: <url>")
                 System.exit(1)
             }
-            val crawl = WebCrawler().crawl(args[0])
-            val textMap = crawl.toSortedMap()
-                .map { "${it.key} -> ${it.value}" }
-                .joinToString("\n") { it }
-            File("sitemap.txt").writeText(textMap)
+            val siteMap = WebCrawler().crawl(args[0])
+            siteMap.writeToFile("sitemap.txt")
         }
     }
 
-    private val hrefRegex = Pattern.compile("href=\"([^\"]+)\"")!!
+    fun crawl(url: String): SiteMap {
+        val tracker = Tracker()
+        tracker.queue.add(url)
 
-    fun crawl(url: String): Map<String, Set<String>> {
-        val queue = ArrayDeque<String>()
-        val visited = mutableMapOf<String, Set<String>>()
-        val unvisitable = mutableSetOf<String>()
-        queue.add("/")
-
-        while (queue.isNotEmpty()) {
-            val nextUrl = queue.pop()
+        while (tracker.queue.isNotEmpty()) {
+            val nextUrl = tracker.queue.poll()
             when {
                 nextUrl.startsWith("//") ->
-                    "${url.protocol()}${nextUrl}".httpGetAndFindLinksAndQueueNewLinks(nextUrl, visited, unvisitable, queue)
+                    nextUrl.httpGetAndTrackProgress("${url.protocol()}${nextUrl}", tracker)
                 nextUrl.startsWith("/") ->
-                    "${url}${nextUrl}".httpGetAndFindLinksAndQueueNewLinks(nextUrl, visited, unvisitable, queue)
+                    nextUrl.httpGetAndTrackProgress("${url}${nextUrl}", tracker)
                 nextUrl.startsWith(url) ->
-                    nextUrl.httpGetAndFindLinksAndQueueNewLinks(nextUrl, visited, unvisitable, queue)
+                    nextUrl.httpGetAndTrackProgress(nextUrl, tracker)
             }
         }
 
-        return visited.toMap()
+        return SiteMap(tracker.visited)
     }
 
-    private fun String.httpGetAndFindLinksAndQueueNewLinks(
-        nextUrl: String,
-        visited: MutableMap<String, Set<String>>,
-        unvisitable: MutableSet<String>,
-        queue: ArrayDeque<String>
-    ) {
-        val newUrls = this.httpGetAndFindLinks()
-        if (newUrls != null) {
-            visited[nextUrl] = newUrls
-            val notAlreadyVisitedUrls = newUrls
-                .filterNot { it in visited }
-                .filterNot { it in unvisitable }
-            queue.addAll(notAlreadyVisitedUrls)
+    private fun String.httpGetAndTrackProgress(fullUrl: String, tracker: Tracker) {
+        if (this in tracker.visited.keys || this in tracker.unvisitable || this in tracker.queue) {
+            return
+        }
+
+        val newUrls = fullUrl.httpGetAndFindLinksOrNull()
+        if (newUrls == null) {
+            tracker.unvisitable.add(this)
         } else {
-            unvisitable.add(this)
+            tracker.visited[this] = newUrls
+            tracker.queue.addAll(newUrls)
         }
     }
-
-    private fun String.httpGetAndFindLinks(): Set<String>? {
-        val (_, response, result) = this.httpGet().responseString()
-        result.fold(
-            success = { html ->
-                return html.findHrefs()
-            },
-            failure = {
-                System.err.println("Failed to get ${this} (${response.statusCode}), continuing...")
-                return null
-            }
-        )
-    }
-
-    private fun String.findHrefs(): Set<String> {
-        val matcher = hrefRegex.matcher(this)
-        val hrefs = mutableSetOf<String>()
-        while (matcher.find()) {
-            hrefs.add(matcher.group(1))
-        }
-        return hrefs.toSet()
-    }
-
-    private fun String.protocol() = this.split("//").first()
 }

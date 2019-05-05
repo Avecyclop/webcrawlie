@@ -8,6 +8,7 @@ import com.xebialabs.restito.server.StubServer
 import org.glassfish.grizzly.http.util.HttpStatus
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -37,10 +38,11 @@ class WebCrawlerTest {
     }
 
     @Test
-    fun crawlSimple() {
-        val result = target.crawl(url)
+    fun simpleCrawl() {
+        val result = target.crawl(url).map
 
-        assertEquals(result.toString(), 6, result.size)
+        assertEquals(result.toString(), 7, result.size)
+        assertTrue(result.contains(url))
         assertTrue(result.contains("/"))
         assertTrue(result.contains("/about.html"))
         assertTrue(result.contains("/news.html"))
@@ -48,13 +50,13 @@ class WebCrawlerTest {
         assertTrue(result.contains("//localhost:58080/news2.html"))
         assertTrue(result.contains("${url}/news3.html"))
 
-        assertTrue(result["/"]!!.contains("/about.html"))
-        assertTrue(result["/"]!!.contains("/news.html"))
+        assertTrue(result[url]!!.contains("/about.html"))
+        assertTrue(result[url]!!.contains("/news.html"))
     }
 
     @Test
     fun followAbsoluteLinksOnSameDomain() {
-        val result = target.crawl(url)
+        val result = target.crawl(url).map
 
         assertTrue(result.contains("/news.html"))
         assertTrue(result["/news.html"]!!.contains("${url}/news3.html"))
@@ -65,9 +67,10 @@ class WebCrawlerTest {
         whenHttp(site).match(get("/news1.html"))
             .then(status(HttpStatus.FORBIDDEN_403))
 
-        val result = target.crawl(url)
+        val result = target.crawl(url).map
 
-        assertEquals(result.toString(), 5, result.size)
+        assertEquals(result.toString(), 6, result.size)
+        assertFalse(result.contains("/news1.html"))
     }
 
     @Test
@@ -75,13 +78,16 @@ class WebCrawlerTest {
         WebCrawler.main(arrayOf(url))
         val fileContent = File("sitemap.txt").readText()
 
-        assertEquals("""
+        assertEquals(
+            """
             / -> [/news.html, /about.html]
             //localhost:58080/news2.html -> []
             /about.html -> [/]
             /news.html -> [/news1.html, //localhost:58080/news2.html, http://localhost:58080/news3.html]
             /news1.html -> []
+            http://localhost:58080 -> [/news.html, /about.html]
             http://localhost:58080/news3.html -> []
-        """.trimIndent(), fileContent)
+        """.trimIndent(), fileContent
+        )
     }
 }
