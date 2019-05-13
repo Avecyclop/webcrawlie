@@ -4,12 +4,25 @@ class WebCrawler {
     companion object {
         @JvmStatic
         fun main(args: Array<String>) {
-            if (args.size != 1) {
-                System.err.println("Expected single argument: <url>")
-                System.exit(1)
+            val (url, opt) = validate(args)
+            val siteMap = WebCrawler().crawl(url)
+            if (opt == "graph") {
+                siteMap.graphToFile("sitemap-graph.png")
+            } else {
+                siteMap.writeToFile("sitemap.txt")
             }
-            val siteMap = WebCrawler().crawl(args[0])
-            siteMap.writeToFile("sitemap.txt")
+        }
+
+        private fun validate(args: Array<String>): Pair<String, String?> {
+            return when {
+                args.size == 1 -> Pair(args[0], null)
+                args.size == 2 && args[1] == "graph" -> Pair(args[0], args[1])
+                else -> {
+                    System.err.println("Expected arguments: <url> [graph]")
+                    System.exit(1)
+                    Pair("", "")
+                }
+            }
         }
     }
 
@@ -33,7 +46,7 @@ class WebCrawler {
     }
 
     private fun String.httpGetAndTrackProgress(fullUrl: String, tracker: Tracker) {
-        if (this in tracker.visited.keys || this in tracker.unvisitable || this in tracker.queue) {
+        if (this in tracker.visited || this in tracker.unvisitable || this in tracker.queue) {
             return
         }
 

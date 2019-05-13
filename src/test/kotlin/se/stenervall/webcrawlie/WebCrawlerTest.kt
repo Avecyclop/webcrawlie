@@ -84,10 +84,17 @@ class WebCrawlerTest {
             //localhost:58080/news2.html -> []
             /about.html -> [/]
             /news.html -> [/news1.html, //localhost:58080/news2.html, http://localhost:58080/news3.html]
-            /news1.html -> []
+            /news1.html -> [https://www.bbc.co.uk/news/world-asia-123?foo=½!#¤%/()@£${'$'}€{[ +]}\&bar]
             http://localhost:58080 -> [/news.html, /about.html]
             http://localhost:58080/news3.html -> []
-        """.trimIndent(), fileContent
+            """.trimIndent(), fileContent
         )
+    }
+
+    @Test
+    fun `commandLine toGraph`() {
+        WebCrawler.main(arrayOf(url, "graph"))
+
+        assertTrue(File("sitemap-graph.png").exists())
     }
 }
